@@ -1,8 +1,11 @@
-package cs4450_demo;
+package Program1;
 
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import static org.lwjgl.opengl.GL11.*;
+
+import Program1.ReadCoordinates;
 
 public class Basic {
 
@@ -13,13 +16,15 @@ public class Basic {
             render();
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(1);
         }
     }
 
     private void createWindow() throws Exception {
         Display.setFullscreen(false);
+        // draw a window of 640x480 in the center of the screen
         Display.setDisplayMode(new DisplayMode(640, 480));
-        Display.setTitle("Program 1");
+        Display.setTitle("Kelly Lwin - Program 1");
         Display.create();
     }
 
@@ -35,14 +40,19 @@ public class Basic {
     private void render() {
         while (!Display.isCloseRequested()) {
             try {
+                // quit the application if the escape key is pressed
+                if(Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) {
+                    System.out.println("Exiting Program...");
+                    break;
+                }
+                
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glLoadIdentity();
                 glColor3f(1.0f, 1.0f, 0.0f);
                 glPointSize(10);
-                glBegin(GL_POINTS);
-                glVertex2f(350.0f, 150.0f);
-                glVertex2f(50.0f, 50.0f);
-                glEnd();
+                
+                // read in coordinates from a file titled coordinates.txt
+                ReadCoordinates.readFile("src\\Program1\\coordinates.txt");
 
                 Display.update();
                 Display.sync(60);
