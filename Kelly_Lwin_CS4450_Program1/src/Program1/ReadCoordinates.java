@@ -52,7 +52,7 @@ public class ReadCoordinates {
         }
     }
 
-    // method: parseLine
+    // method: parseLineFromFile
     // purpose: Parses a line from the file to determine the shape type and extract its properties.
     private static void parseLineFromFile(String line) {
         if (line.isEmpty()) {
