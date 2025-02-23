@@ -1,37 +1,25 @@
-/***************************************************************
-* file: Basic.java
-* author: Kelly L.
-* class: CS 4450.01 (S25-Regular) Computer Graphics
-*
-* assignment: Program 1
-* date last modified: 2/10/2025
-*
-* purpose: This program creates an OpenGL window and 
-* renders graphical primitives based on coordinate input.
-* note: The code contains content assisted by AI.
-****************************************************************/
-
 package Program2;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
+import java.util.List;
 import static org.lwjgl.opengl.GL11.*;
 
 public class Basic {
 
-    // instance variables
     private static final int WINDOW_WIDTH = 640;
     private static final int WINDOW_HEIGHT = 480;
     private static final int FRAME_RATE = 60;
     private static final String WINDOW_TITLE = "Kelly Lwin - Program 2";
 
-    // method: start
-    // purpose: Sets up the graphics and begins rendering.
+    private List<Polygon> polygons;
+
     public void start() {
         try {
             createWindow();
             initGL();
+            loadPolygons();
             render();
         } catch (Exception e) {
             e.printStackTrace();
@@ -39,8 +27,6 @@ public class Basic {
         }
     }
 
-    // method: createWindow
-    // purpose: Creates and initializes an OpenGL window.
     private void createWindow() throws Exception {
         Display.setFullscreen(false);
         Display.setDisplayMode(new DisplayMode(WINDOW_WIDTH, WINDOW_HEIGHT));
@@ -48,22 +34,19 @@ public class Basic {
         Display.create();
     }
 
-    // method: initGL
-    // purpose: Initializes OpenGL settings and sets the background color.
     private void initGL() {
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // Set background to black
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-
-        // Centering coordinate system (-320, -240) to (320, 240)
         glOrtho(-320, 320, -240, 240, 1, -1);
-
         glMatrixMode(GL_MODELVIEW);
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     }
 
-    // method: render
-    // purpose: Main rendering loop, handles user input and draws graphics.
+    private void loadPolygons() {
+        polygons = ReadCoordinates.readPolygons("src/coordinates.txt");
+    }
+
     private void render() {
         while (!Display.isCloseRequested()) {
             try {
@@ -72,19 +55,13 @@ public class Basic {
                     break;
                 }
 
-//                if (Keyboard.isKeyDown(Keyboard.KEY_C)) {
-//                    // Change polygon color randomly
-//                    float r = (float) Math.random();
-//                    float g = (float) Math.random();
-//                    float b = (float) Math.random();
-//                    ReadCoordinates.setPolygonColor(r, g, b);
-//                }
-
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glLoadIdentity();
 
-                // Read coordinates and render polygons
-                ReadCoordinates.readFile("src\\coordinates.txt");
+                for (Polygon polygon : polygons) {
+                    polygon.print();
+                    polygon.draw();
+                }
 
                 Display.update();
                 Display.sync(FRAME_RATE);
@@ -95,8 +72,6 @@ public class Basic {
         Display.destroy();
     }
 
-    // method: main
-    // purpose: Creates an instance of Basic and starts program execution.
     public static void main(String[] args) {
         Basic basic = new Basic();
         basic.start();

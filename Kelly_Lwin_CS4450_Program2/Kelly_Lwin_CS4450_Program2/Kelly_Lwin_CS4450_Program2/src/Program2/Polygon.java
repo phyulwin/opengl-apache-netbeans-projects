@@ -7,14 +7,16 @@
 * date last modified: 2/10/2025
 *
 * purpose: This class represents a polygon object with color, 
-* vertices, and transformations. It provides a method to 
-* print polygon properties.
+* vertices, and transformations. It provides methods to 
+* print and draw the polygon.
 ****************************************************************/
 
 package Program2;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.lwjgl.opengl.GL11.*;
 
 public class Polygon {
     private float[] color;
@@ -33,6 +35,52 @@ public class Polygon {
 
     public void addTransformation(String transformation) {
         transformations.add(transformation);
+    }
+
+    public void draw() {
+        glPushMatrix();  // Save current transformation state
+        
+        // Apply transformations before drawing
+        for (String transformation : transformations) {
+            String[] parts = transformation.split(" ");
+            switch (parts[0]) {
+                case "r": // Rotation
+                    float angle = Float.parseFloat(parts[1]);
+                    float pivotX = Float.parseFloat(parts[2]);
+                    float pivotY = Float.parseFloat(parts[3]);
+                    glTranslatef(pivotX, pivotY, 0);
+                    glRotatef(angle, 0, 0, 1);
+                    glTranslatef(-pivotX, -pivotY, 0);
+                    break;
+
+                case "s": // Scaling
+                    float scaleX = Float.parseFloat(parts[1]);
+                    float scaleY = Float.parseFloat(parts[2]);
+                    float scalePivotX = Float.parseFloat(parts[3]);
+                    glTranslatef(scalePivotX, scalePivotX, 0);
+                    glScalef(scaleX, scaleY, 1);
+                    glTranslatef(-scalePivotX, -scalePivotX, 0);
+                    break;
+
+                case "t": // Translation
+                    float translateX = Float.parseFloat(parts[1]);
+                    float translateY = Float.parseFloat(parts[2]);
+                    glTranslatef(translateX, translateY, 0);
+                    break;
+            }
+        }
+
+        // Set color
+        glColor3f(color[0], color[1], color[2]);
+
+        // Draw the polygon
+        glBegin(GL_POLYGON);
+        for (float[] vertex : vertices) {
+            glVertex2f(vertex[0], vertex[1]);
+        }
+        glEnd();
+
+        glPopMatrix();  // Restore previous transformation state
     }
 
     public void print() {
