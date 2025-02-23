@@ -11,7 +11,7 @@
 * note: The code contains content assisted by AI.
 ****************************************************************/
 
-package Program1;
+package Program2;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
@@ -24,7 +24,7 @@ public class Basic {
     private static final int WINDOW_WIDTH = 640;
     private static final int WINDOW_HEIGHT = 480;
     private static final int FRAME_RATE = 60;
-    private static final String WINDOW_TITLE = "Kelly Lwin - Program 1";
+    private static final String WINDOW_TITLE = "Kelly Lwin - Program 2";
 
     // method: start
     // purpose: Sets up the graphics and begins rendering.
@@ -51,10 +51,13 @@ public class Basic {
     // method: initGL
     // purpose: Initializes OpenGL settings and sets the background color.
     private void initGL() {
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // Set background to black
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, 1, -1);
+
+        // Centering coordinate system (-320, -240) to (320, 240)
+        glOrtho(-320, 320, -240, 240, 1, -1);
+
         glMatrixMode(GL_MODELVIEW);
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     }
@@ -64,19 +67,24 @@ public class Basic {
     private void render() {
         while (!Display.isCloseRequested()) {
             try {
-                // Quit the program if escape key is pressed
                 if (Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) {
                     System.out.println("Exiting Program...");
                     break;
                 }
 
+//                if (Keyboard.isKeyDown(Keyboard.KEY_C)) {
+//                    // Change polygon color randomly
+//                    float r = (float) Math.random();
+//                    float g = (float) Math.random();
+//                    float b = (float) Math.random();
+//                    ReadCoordinates.setPolygonColor(r, g, b);
+//                }
+
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glLoadIdentity();
-                glColor3f(1.0f, 1.0f, 0.0f);
-                glPointSize(10);
 
-                // Read in coordinates from a file titled coordinates.txt
-                ReadCoordinates.readFile("src\\Program1\\coordinates.txt");
+                // Read coordinates and render polygons
+                ReadCoordinates.readFile("src\\coordinates.txt");
 
                 Display.update();
                 Display.sync(FRAME_RATE);
