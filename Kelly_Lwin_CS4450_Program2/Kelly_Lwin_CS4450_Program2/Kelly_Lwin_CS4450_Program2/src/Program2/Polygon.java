@@ -1,146 +1,180 @@
-/***************************************************************
- * file: Polygon.java
- * author: Kelly L.
- * class: CS 4450.01 (S25-Regular) Computer Graphics
- *
- * assignment: program 1
- * date last modified: 2/10/2025
- *
- * purpose: This class represents a polygon object with color, 
- * vertices, and transformations. It provides methods to 
- * print and draw the polygon.
- ***************************************************************/
-
 package Program2;
 
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
+import java.util.*;
+import java.lang.Math;
 
 public class Polygon {
-    // Vertex data fields
-    private float[] vertices;
-    private int vertexCount;
-    private ByteBuffer vertexBuffer;
-
-    // Transformation properties
-    private float translationX = 0.0f;
-    private float translationY = 0.0f;
-    private float rotation = 0.0f; // in degrees
-    private float scaleX = 1.0f;
-    private float scaleY = 1.0f;
-    
-    // Color property (RGBA)
-    private float[] color = {1.0f, 1.0f, 1.0f, 1.0f}; // default white
-
-    /**
-     * Constructs a polygon using the given vertex array.
-     * The vertices should be in the format: x, y, z for each vertex.
-     */
-    public Polygon(float[] vertices) {
-        this.vertices = vertices;
-        this.vertexCount = vertices.length / 3;
-        prepareVertexBuffer();
+    // Nested class for a 2D point.
+    public static class Point {
+        public float x, y;
+        public Point(float x, float y) { this.x = x; this.y = y; }
     }
     
-    /**
-     * Sets the color for the polygon.
-     * @param r red component (0 to 1)
-     * @param g green component (0 to 1)
-     * @param b blue component (0 to 1)
-     * @param a alpha component (0 to 1)
-     */
+    // List of vertices (in model space).
+    private List<Point> vertices;
+    // Fill color components.
+    private float r, g, b, a;
+    // Transformation commands stored in the order they appear in the file.
+    private List<String> transformationCommands;
+    
+    public Polygon() {
+        vertices = new ArrayList<>();
+        transformationCommands = new ArrayList<>();
+        // Default to white and fully opaque.
+        r = g = b = 1.0f;
+        a = 1.0f;
+    }
+    
+    public void addVertex(float x, float y) {
+        vertices.add(new Point(x, y));
+    }
+    
     public void setColor(float r, float g, float b, float a) {
-        this.color[0] = r;
-        this.color[1] = g;
-        this.color[2] = b;
-        this.color[3] = a;
+        this.r = r; this.g = g; this.b = b; this.a = a;
     }
     
-    /**
-     * Prepares the ByteBuffer for vertex data.
-     */
-    private void prepareVertexBuffer() {
-        // Each float is 4 bytes.
-        vertexBuffer = BufferUtils.createByteBuffer(vertices.length * 4);
-        FloatBuffer floatView = vertexBuffer.asFloatBuffer();
-        floatView.put(vertices);
-        floatView.flip(); // Prepare the buffer for reading
+    // Overloaded setColor without alpha (defaults to opaque).
+    public void setColor(float r, float g, float b) {
+        setColor(r, g, b, 1.0f);
     }
     
-    /**
-     * Sets the translation (position) for the polygon.
-     */
-    public void setTranslation(float x, float y) {
-        this.translationX = x;
-        this.translationY = y;
+    public void addTransformation(String command) {
+        transformationCommands.add(command);
     }
     
-    /**
-     * Sets the rotation angle (in degrees) for the polygon.
-     */
-    public void setRotation(float angle) {
-        this.rotation = angle;
-    }
-    
-    /**
-     * Increments the rotation by the specified angle (in degrees).
-     */
-    public void incrementRotation(float deltaAngle) {
-        this.rotation += deltaAngle;
-        if (this.rotation >= 360f) {
-            this.rotation -= 360f;
+    // Helper: Multiply two 3x3 matrices.
+    private double[][] multiplyMatrix(double[][] A, double[][] B) {
+        double[][] C = new double[3][3];
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
+                C[i][j] = 0;
+                for (int k = 0; k < 3; k++){
+                    C[i][j] += A[i][k] * B[k][j];
+                }
+            }
         }
+        return C;
     }
     
-    /**
-     * Sets the scale for the polygon.
-     */
-    public void setScale(float scaleX, float scaleY) {
-        this.scaleX = scaleX;
-        this.scaleY = scaleY;
+    // Helper: Apply a 3x3 matrix M to a point p (as homogeneous coordinate).
+    private Point applyMatrix(double[][] M, Point p) {
+        double x = M[0][0] * p.x + M[0][1] * p.y + M[0][2];
+        double y = M[1][0] * p.x + M[1][1] * p.y + M[1][2];
+        return new Point((float)x, (float)y);
     }
     
-    /**
-     * Prints the polygon's properties to the console.
-     */
-    public void print() {
-        System.out.println("Polygon Properties:");
-        System.out.println("Translation: (" + translationX + ", " + translationY + ")");
-        System.out.println("Rotation: " + rotation + " degrees");
-        System.out.println("Scale: (" + scaleX + ", " + scaleY + ")");
-        System.out.print("Color: (");
-        for (int i = 0; i < color.length; i++) {
-            System.out.print(color[i] + (i < color.length - 1 ? ", " : ""));
+    // Computes the composite transformation matrix from the stored transformation commands.
+    private double[][] computeCompositeMatrix() {
+        double[][] composite = {
+            {1, 0, 0},
+            {0, 1, 0},
+            {0, 0, 1}
+        };
+        for(String cmd : transformationCommands) {
+            String[] parts = cmd.split("\\s+");
+            if(parts.length == 0) continue;
+            char type = parts[0].charAt(0);
+            double[][] M = null;
+            switch(type) {
+                case 't': // Translation: "t dx dy"
+                    if(parts.length >= 3) {
+                        double dx = Double.parseDouble(parts[1]);
+                        double dy = Double.parseDouble(parts[2]);
+                        M = new double[][] {
+                            {1, 0, dx},
+                            {0, 1, dy},
+                            {0, 0, 1}
+                        };
+                    }
+                    break;
+                case 'r': // Rotation: "r angle pivotX pivotY"
+                    if(parts.length >= 4) {
+                        double angle = Math.toRadians(Double.parseDouble(parts[1]));
+                        double px = Double.parseDouble(parts[2]);
+                        double py = Double.parseDouble(parts[3]);
+                        // Build the composite for rotation about a pivot.
+                        double[][] T1 = {
+                            {1, 0, -px},
+                            {0, 1, -py},
+                            {0, 0, 1}
+                        };
+                        double[][] R = {
+                            {Math.cos(angle), -Math.sin(angle), 0},
+                            {Math.sin(angle),  Math.cos(angle), 0},
+                            {0, 0, 1}
+                        };
+                        double[][] T2 = {
+                            {1, 0, px},
+                            {0, 1, py},
+                            {0, 0, 1}
+                        };
+                        M = multiplyMatrix(T2, multiplyMatrix(R, T1));
+                    }
+                    break;
+                case 's': // Scaling: "s sx sy"
+                    if(parts.length >= 3) {
+                        double sx = Double.parseDouble(parts[1]);
+                        double sy = Double.parseDouble(parts[2]);
+                        M = new double[][] {
+                            {sx, 0, 0},
+                            {0, sy, 0},
+                            {0, 0, 1}
+                        };
+                    }
+                    break;
+            }
+            if(M != null) {
+                // Pre-multiply to maintain the file order.
+                composite = multiplyMatrix(M, composite);
+            }
         }
-        System.out.println(")");
-        System.out.println("Vertices:");
-        for (int i = 0; i < vertexCount; i++) {
-            System.out.println("Vertex " + i + ": (" + vertices[i * 3] + ", " 
-                    + vertices[i * 3 + 1] + ", " + vertices[i * 3 + 2] + ")");
-        }
+        return composite;
     }
     
-    /**
-     * Draws the polygon. The method applies the current transformation 
-     * (translation, rotation, and scaling) and renders the polygon.
-     */
+    // Draws the polygon by applying the composite transformation and using the scanline fill algorithm.
     public void draw() {
-        glPushMatrix();
-        // Apply transformations in the order: translate, rotate, scale
-        glTranslatef(translationX, translationY, 0);
-        glRotatef(rotation, 0, 0, 1);
-        glScalef(scaleX, scaleY, 1);
+        // Compute composite transformation matrix.
+        double[][] composite = computeCompositeMatrix();
+        // Transform vertices.
+        List<Point> transformed = new ArrayList<>();
+        for(Point p : vertices) {
+            transformed.add(applyMatrix(composite, p));
+        }
+        int n = transformed.size();
+        if(n < 3) return; // Not a valid polygon.
         
-        // Set the polygon color
-        glColor4f(color[0], color[1], color[2], color[3]);
+        // Determine y bounds.
+        float yMin = Float.MAX_VALUE;
+        float yMax = -Float.MAX_VALUE;
+        for(Point p : transformed) {
+            if(p.y < yMin) yMin = p.y;
+            if(p.y > yMax) yMax = p.y;
+        }
         
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 0, vertexBuffer);
-        glDrawArrays(GL_POLYGON, 0, vertexCount);
-        glDisableClientState(GL_VERTEX_ARRAY);
+        // Set the fill color.
+        glColor4f(r, g, b, a);
         
-        glPopMatrix();
+        // For each scanline, compute intersections with polygon edges and draw horizontal lines.
+        for (int y = (int)Math.ceil(yMin); y <= (int)Math.floor(yMax); y++) {
+            List<Float> xIntersections = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                Point p1 = transformed.get(i);
+                Point p2 = transformed.get((i + 1) % n);
+                if ((p1.y <= y && p2.y > y) || (p2.y <= y && p1.y > y)) {
+                    float x = p1.x + (y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y);
+                    xIntersections.add(x);
+                }
+            }
+            Collections.sort(xIntersections);
+            glBegin(GL_LINES);
+            for (int i = 0; i < xIntersections.size(); i += 2) {
+                if (i + 1 < xIntersections.size()) {
+                    glVertex2f(xIntersections.get(i), y);
+                    glVertex2f(xIntersections.get(i + 1), y);
+                }
+            }
+            glEnd();
+        }
     }
 }
