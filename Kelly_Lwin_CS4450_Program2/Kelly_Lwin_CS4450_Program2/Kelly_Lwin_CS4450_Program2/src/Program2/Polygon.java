@@ -13,8 +13,12 @@
 
 package Program2;
 
-import java.util.ArrayList;
+// import required modules
+import java.nio.FloatBuffer;
+import java.nio.ByteBuffer;
+
 import java.util.List;
+import java.util.ArrayList;
 
 import static org.lwjgl.opengl.GL11.*;
 
