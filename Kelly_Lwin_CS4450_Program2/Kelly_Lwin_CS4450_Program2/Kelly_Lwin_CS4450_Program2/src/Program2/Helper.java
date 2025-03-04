@@ -93,14 +93,19 @@ public class Helper {
             {0, 1, 0},
             {0, 0, 1}
         };
+        
         // Process each transformation command in order
         for(String cmd : transformations) {
             String[] parts = cmd.split("\\s+");
-            if(parts.length == 0) continue;
+            if(parts.length == 0) {
+                continue;
+            }
             char type = parts[0].charAt(0);
             double[][] M = null;
+            
             switch(type) {
-                case 't': // Translation: "t dx dy"
+                // Translation: "t dx dy"
+                case 't': 
                     if(parts.length >= 3) {
                         double dx = Double.parseDouble(parts[1]);
                         double dy = Double.parseDouble(parts[2]);
@@ -112,7 +117,8 @@ public class Helper {
                         };
                     }
                     break;
-                case 'r': // Rotation: "r angle pivotX pivotY"
+                // Rotation: "r angle pivotX pivotY"
+                case 'r': 
                     if(parts.length >= 4) {
                         double angle = Math.toRadians(Double.parseDouble(parts[1]));
                         double px = Double.parseDouble(parts[2]);
@@ -140,7 +146,8 @@ public class Helper {
                         M = Helper.multiplyMatrix(T2, Helper.multiplyMatrix(R, T1));
                     }
                     break;
-                case 's': // Scaling: "s sx sy"
+                // Scaling: "s sx sy"
+                case 's': 
                     if(parts.length >= 3) {
                         double sx = Double.parseDouble(parts[1]);
                         double sy = Double.parseDouble(parts[2]);
@@ -168,6 +175,7 @@ public class Helper {
         // Compute composite matrix
         double[][] composite = computeCompositeMatrix(transformations);
         List<Point> transformed = new ArrayList<>();
+        
         // Transform each vertex using the composite matrix
         for (Point p : vertices) {
             transformed.add(Helper.applyMatrix(composite, p));
